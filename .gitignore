@@ -1,0 +1,15 @@
+# Archivos de R y RStudio
+.Rhistory
+.RData
+.Rproj.user/
+
+# Insumos y datos masivos generados localmente (Paso 3)
+data/*.csv
+data/confidencial/
+
+# Repositorio base clonado del docente (evita repositorios anidados)
+base/
+
+# Archivos temporales de Excel
+excel/~$*.xlsx
+~$*.xlsx
