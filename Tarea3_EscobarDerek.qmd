@@ -18,6 +18,7 @@ params <- read.csv2("config/parametros_tarea3.csv")
 
 # Carga de base de transacciones
 tx <- read_csv2("data/transacciones_2025.csv", show_col_types = FALSE)
+cantones <- read_csv("data/cantones.csv", show_col_types = FALSE)
 ```
 
 ## 0. Hoja de respuestas
@@ -34,11 +35,18 @@ RESULTADO_1A <- sum(res_ej1_asig$alerta)
 RESULTADO_1B <- as.character(res_ej1_asig$fecha[which(res_ej1_asig$alerta)[1]])
 RESULTADO_1C <- sum(res_ej1_comun$alerta)
 
+# Calculo Ejercicio 2
+canal_asig <- as.character(params$valor[params$parametro == "canal.benford"])
+
+res_ej2_asig <- benford.canton(tx, canal = canal_asig, cantones = cantones)
+res_ej2_web  <- benford.canton(tx, canal = "Web", cantones = cantones)
+
+RESULTADO_2A <- round(benford.mad(tx$monto_crc[tx$canal == canal_asig]), 4)
+RESULTADO_2B <- res_ej2_asig$canton[1]
+RESULTADO_2C <- sum(res_ej2_asig$mad > 0.015, na.rm = TRUE)
+RESULTADO_2D <- res_ej2_web$canton[1]
+
 # Placeholders Ejercicios 2 y 3
-RESULTADO_2A <- "PENDIENTE"
-RESULTADO_2B <- "PENDIENTE"
-RESULTADO_2C <- "PENDIENTE"
-RESULTADO_2D <- "PENDIENTE"
 RESULTADO_3A <- "PENDIENTE"
 RESULTADO_3B <- "PENDIENTE"
 RESULTADO_3C <- "PENDIENTE"
