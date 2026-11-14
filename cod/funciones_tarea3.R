@@ -1,16 +1,16 @@
 # Ejercicio 1
 #Recibe:
-# -df
-# -ventana
-# -k.alerta
+# -df: data frame de transacciones con columna fecha
+# -ventana: entero con la cantidad de dias previos de la ventana movil
+# -k.alerta: numero real con el multiplicador de desviacion estandar para el umbral
 #
-#Devuelve
+#Devuelve:
 # -Data frame:
-#  -fecha
-#  -n.tx
-#  -media
-#  -desv
-#  -alerta
+#  -fecha: fecha de cada dia evaluado
+#  -n.tx: numero de transacciones registradas en el dia
+#  -media: promedio movil de transacciones de los ventana dias previos
+#  -desv: desviacion estandar muestral de los ventana dias previos
+#  -alerta: valor logico que indica si n.tx supera media + k.alerta * desv
 alerta.movil <- function(df, ventana, k.alerta){
   #Contamos las repeticiones por fecha
   df.diario <- df |>
@@ -43,4 +43,79 @@ alerta.movil <- function(df, ventana, k.alerta){
   df.diario$alerta <- alerta.vec
   
   return(df.diario)
+}
+
+# Ejercicio 2
+#
+# Función 1
+#Recibe:
+# -x: vector numerico de montos positivos
+#
+#Devuelve:
+# -MAD: numero real con la desviacion absoluta media respecto a la Ley de Benford
+benford.mad <- function(x){
+  # Limpiamos valores faltantes o no positivos
+  x <- x[!is.na(x) & x > 0]
+  # Extraemos el primer digito (1 a 9) de cada monto
+  d <- x %/% 10^floor(log10(x))
+  # Calculamos proporcion observada del digito d
+  conteos <- tabulate(d, nbins = 9)
+  pd <- conteos / sum(conteos)
+  # Calculamos proporcion teorica de Benford para los digitos 1 al 9
+  Bd <- log10(1 + 1 / (1:9))
+  # Calculamos MAD
+  MAD <- sum(abs(pd - Bd)) / 9
+  return(MAD)
+}
+
+# Función 2
+#Recibe:
+# -df: data frame de transacciones con columnas canal, cod_canton y monto_crc
+# -canal: cadena de texto con el canal a filtrar
+# -cantones: data frame catalogo con cod_canton y canton
+#
+#Devuelve:
+# -Data frame:
+#  -cod_canton: codigo identificador del canton
+#  -canton: nombre del canton
+#  -n: cantidad de transacciones del canton en el canal
+#  -mad: desviacion absoluta media de los montos del canton
+#  -clase: clasificacion de conformidad segun umbrales de Nigrini
+benford.canton <- function(df, canal, cantones){
+  # Filtramos las transacciones del canal indicado
+  df.canal <- df[df$canal == canal, ]
+  
+  # Calculamos n y MAD por canton usando benford.mad
+  res.canton <- df.canal |>
+    dplyr::group_by(cod_canton) |>
+    dplyr::summarise(
+      n = dplyr::n(),
+      mad = benford.mad(monto_crc),
+      .groups = "drop"
+    )
+  
+  # Unimos con el catalogo oficial de cantones
+  res.canton <- res.canton |>
+    dplyr::right_join(cantones[, c("cod_canton", "canton")], by = "cod_canton")
+  
+  # Rellenamos n con 0 si hay cantones sin datos y clasificamos segun Nigrini
+  res.canton <- res.canton |>
+    dplyr::mutate(
+      n = dplyr::coalesce(n, 0L),
+      clase = dplyr::case_when(
+        mad <= 0.006 ~ "conformidad cercana",
+        mad <= 0.012 ~ "conformidad aceptable",
+        mad <= 0.015 ~ "conformidad marginal",
+        mad >  0.015 ~ "no conformidad",
+        TRUE ~ NA_character_
+      )
+    )
+  
+  # Ordenamos columnas y filas de mayor a menor MAD
+  res.canton <- res.canton |>
+    dplyr::select(cod_canton, canton, n, mad, clase) |>
+    dplyr::arrange(dplyr::desc(mad))
+  
+  res.canton <- as.data.frame(res.canton)
+  return(res.canton)
 }
