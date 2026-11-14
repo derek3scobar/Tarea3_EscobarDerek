@@ -1,0 +1,87 @@
+---
+title: "Tarea 3 - Proyecto R + Git + Excel"
+author: "Derek Matías Escobar Jaramillo"
+format:
+  html:
+    embed-resources: true
+editor: source
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE)
+library(dplyr)
+library(readr)
+
+# Carga de funciones modulares y parametros asignados
+source("cod/funciones_tarea3.R")
+params <- read.csv2("config/parametros_tarea3.csv")
+
+# Carga de base de transacciones
+tx <- read_csv2("data/transacciones_2025.csv", show_col_types = FALSE)
+```
+
+## 0. Hoja de respuestas
+
+```{r respuestas, echo=FALSE}
+# Calculo Ejercicio 1
+v_asig <- as.integer(params$valor[params$parametro == "ventana"])
+k_asig <- as.numeric(params$valor[params$parametro == "k.alerta"])
+
+res_ej1_asig <- alerta.movil(tx, ventana = v_asig, k.alerta = k_asig)
+res_ej1_comun <- alerta.movil(tx, ventana = 7, k.alerta = 2)
+
+RESULTADO_1A <- sum(res_ej1_asig$alerta)
+RESULTADO_1B <- as.character(res_ej1_asig$fecha[which(res_ej1_asig$alerta)[1]])
+RESULTADO_1C <- sum(res_ej1_comun$alerta)
+
+# Placeholders Ejercicios 2 y 3
+RESULTADO_2A <- "PENDIENTE"
+RESULTADO_2B <- "PENDIENTE"
+RESULTADO_2C <- "PENDIENTE"
+RESULTADO_2D <- "PENDIENTE"
+RESULTADO_3A <- "PENDIENTE"
+RESULTADO_3B <- "PENDIENTE"
+RESULTADO_3C <- "PENDIENTE"
+
+cat(
+  paste0("RESULTADO_1A = ", RESULTADO_1A),
+  paste0("RESULTADO_1B = ", RESULTADO_1B),
+  paste0("RESULTADO_1C = ", RESULTADO_1C),
+  paste0("RESULTADO_2A = ", RESULTADO_2A),
+  paste0("RESULTADO_2B = ", RESULTADO_2B),
+  paste0("RESULTADO_2C = ", RESULTADO_2C),
+  paste0("RESULTADO_2D = ", RESULTADO_2D),
+  paste0("RESULTADO_3A = ", RESULTADO_3A),
+  paste0("RESULTADO_3B = ", RESULTADO_3B),
+  paste0("RESULTADO_3C = ", RESULTADO_3C),
+  sep = "\n"
+)
+```
+
+## Ejercicio 1: Alertas por ventana móvil
+
+```{r ej1_grafico, echo=FALSE}
+library(ggplot2)
+
+dir.create("info/figuras", recursive = TRUE, showWarnings = FALSE)
+
+g_ej1 <- ggplot(res_ej1_asig, aes(x = fecha, y = n.tx)) +
+  geom_line(color = "#4B5563", linewidth = 0.5) +
+  geom_point(
+    data = subset(res_ej1_asig, alerta == TRUE),
+    aes(x = fecha, y = n.tx),
+    color = "#DC2626",
+    size = 2
+  ) +
+  labs(
+    title = "Transacciones diarias y alertas por ventana móvil (2025)",
+    subtitle = paste0("Carné C5E850 | ventana = ", v_asig, ", k.alerta = ", k_asig, " (", RESULTADO_1A, " alertas)"),
+    x = "Fecha",
+    y = "Número de transacciones (n.tx)",
+    caption = "Puntos rojos indican días donde n.tx > media + k * desv"
+  ) +
+  theme_minimal()
+
+ggsave("info/figuras/ejercicio1_alertas.png", plot = g_ej1, width = 9, height = 4.5, dpi = 300)
+knitr::include_graphics("info/figuras/ejercicio1_alertas.png")
+```
