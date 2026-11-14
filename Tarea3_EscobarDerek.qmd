@@ -61,6 +61,27 @@ cat(
 ## Ejercicio 1: Alertas por ventana móvil
 
 ```{r ej1_grafico, echo=FALSE}
-# Aquí insertaremos la imagen del gráfico cuando esté lista
-# knitr::include_graphics("info/figuras/ejercicio1_alertas.png")
+library(ggplot2)
+
+dir.create("info/figuras", recursive = TRUE, showWarnings = FALSE)
+
+g_ej1 <- ggplot(res_ej1_asig, aes(x = fecha, y = n.tx)) +
+  geom_line(color = "#4B5563", linewidth = 0.5) +
+  geom_point(
+    data = subset(res_ej1_asig, alerta == TRUE),
+    aes(x = fecha, y = n.tx),
+    color = "#DC2626",
+    size = 2
+  ) +
+  labs(
+    title = "Transacciones diarias y alertas por ventana móvil (2025)",
+    subtitle = paste0("Carné C5E850 | ventana = ", v_asig, ", k.alerta = ", k_asig, " (", RESULTADO_1A, " alertas)"),
+    x = "Fecha",
+    y = "Número de transacciones (n.tx)",
+    caption = "Puntos rojos indican días donde n.tx > media + k * desv"
+  ) +
+  theme_minimal()
+
+ggsave("info/figuras/ejercicio1_alertas.png", plot = g_ej1, width = 9, height = 4.5, dpi = 300)
+knitr::include_graphics("info/figuras/ejercicio1_alertas.png")
 ```
