@@ -1,5 +1,16 @@
 # Ejercicio 1
-
+#Recibe:
+# -df
+# -ventana
+# -k.alerta
+#
+#Devuelve
+# -Data frame:
+#  -fecha
+#  -n.tx
+#  -media
+#  -desv
+#  -alerta
 alerta.movil <- function(df, ventana, k.alerta){
   #Contamos las repeticiones por fecha
   df.diario <- df |>
