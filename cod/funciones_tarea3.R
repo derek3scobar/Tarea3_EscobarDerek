@@ -119,3 +119,56 @@ benford.canton <- function(df, canal, cantones){
   res.canton <- as.data.frame(res.canton)
   return(res.canton)
 }
+
+# Ejercicio 3
+#
+#Recibe:
+# -df: data frame de transacciones con columnas fecha, canal y monto_crc
+# -tasa.anual: numero real con la tasa efectiva anual de interes
+# -canal: cadena de texto con el canal a filtrar
+#
+#Devuelve:
+# -Lista con:
+#  -tabla: data frame con columnas mes (1 a 12), monto (Sm) y factor ((1 + i_m)^(12 - m))
+#  -tasa.mensual: numero real con la tasa efectiva mensual equivalente
+#  -va: numero real con el valor acumulado total al 31 de diciembre
+#  -interes: numero real con los intereses ganados totales
+valor.acumulado <- function(df, tasa.anual, canal){
+  # Filtramos las transacciones del canal indicado y extraemos el mes
+  df.canal <- df[df$canal == canal, ]
+  df.canal$mes <- as.integer(substr(as.character(df.canal$fecha), 6, 7))
+  
+  # Sumamos el monto total del canal por mes (Sm)
+  res.mes <- df.canal |>
+    dplyr::group_by(mes) |>
+    dplyr::summarise(
+      monto = sum(monto_crc),
+      .groups = "drop"
+    )
+  
+  # Aseguramos los 12 meses completos en orden (1 a 12)
+  tabla.mes <- data.frame(mes = 1:12) |>
+    dplyr::left_join(res.mes, by = "mes") |>
+    dplyr::mutate(monto = dplyr::coalesce(monto, 0)) |>
+    dplyr::arrange(mes)
+  
+  # Calculamos la tasa efectiva mensual equivalente y el factor de acumulacion
+  tasa.mensual <- (1 + tasa.anual)^(1 / 12) - 1
+  tabla.mes$factor <- (1 + tasa.mensual)^(12 - tabla.mes$mes)
+  
+  # Calculamos el valor acumulado al 31-dic y los intereses ganados
+  va <- sum(tabla.mes$monto * tabla.mes$factor)
+  interes <- va - sum(tabla.mes$monto)
+  
+  tabla.mes <- as.data.frame(tabla.mes)
+  
+  resultado <- list(
+    tabla        = tabla.mes,
+    tasa.mensual = tasa.mensual,
+    va           = va,
+    interes      = interes
+  )
+  
+  return(resultado)
+}
+

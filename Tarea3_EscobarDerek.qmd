@@ -47,10 +47,16 @@ RESULTADO_2B <- res_ej2_asig$canton[1]
 RESULTADO_2C <- sum(res_ej2_asig$mad > 0.015, na.rm = TRUE)
 RESULTADO_2D <- res_ej2_web$canton[1]
 
-# Placeholders Ejercicios 2 y 3
-RESULTADO_3A <- "PENDIENTE"
-RESULTADO_3B <- "PENDIENTE"
-RESULTADO_3C <- "PENDIENTE"
+# Calculo Ejercicio 3
+tasa_asig  <- as.numeric(params$valor[params$parametro == "tasa.anual"])
+canal_int  <- as.character(params$valor[params$parametro == "canal.interes"])
+
+res_ej3_asig  <- valor.acumulado(tx, tasa.anual = tasa_asig, canal = canal_int)
+res_ej3_comun <- valor.acumulado(tx, tasa.anual = 0.06, canal = "App")
+
+RESULTADO_3A <- sprintf("%.2f", res_ej3_asig$va)
+RESULTADO_3B <- sprintf("%.2f", res_ej3_asig$interes)
+RESULTADO_3C <- sprintf("%.2f", res_ej3_comun$va)
 
 cat(
   paste0("RESULTADO_1A = ", RESULTADO_1A),
@@ -124,4 +130,40 @@ g_ej2 <- ggplot(df_benford, aes(x = factor(digito))) +
 
 ggsave("info/figuras/ejercicio2_benford.png", plot = g_ej2, width = 9, height = 4.5, dpi = 300)
 knitr::include_graphics("info/figuras/ejercicio2_benford.png")
+```
+
+**Conclusión:** No es fraude; al revisar la columna `n`, los cantones con mayor MAD tienen muestras muy pequeñas (por ejemplo, Aserrí con $n = 135$ o Montes de Oca con $n = 158$), por lo que la desviación responde a variabilidad muestral por tamaño de muestra reducido y no a manipulación de datos.
+
+## Ejercicio 3: Valor acumulado con interés
+
+```{r ej3_grafico, echo=FALSE}
+df_ej3_plot <- res_ej3_asig$tabla |>
+  dplyr::mutate(
+    valor_acum = monto * factor,
+    mes_lab = factor(
+      month.abb[mes],
+      levels = month.abb
+    )
+  )
+
+df_ej3_largo <- rbind(
+  data.frame(mes_lab = df_ej3_plot$mes_lab, tipo = "Monto mensual (Sm)", valor = df_ej3_plot$monto / 1e6),
+  data.frame(mes_lab = df_ej3_plot$mes_lab, tipo = "Valor acumulado al 31-dic", valor = df_ej3_plot$valor_acum / 1e6)
+)
+
+g_ej3 <- ggplot(df_ej3_largo, aes(x = mes_lab, y = valor, fill = tipo)) +
+  geom_col(position = position_dodge(width = 0.75), width = 0.7) +
+  scale_fill_manual(values = c("Monto mensual (Sm)" = "#64748B", "Valor acumulado al 31-dic" = "#16A34A")) +
+  labs(
+    title = paste0("Monto mensual vs. Valor acumulado al 31-dic (Canal: ", canal_int, ")"),
+    subtitle = paste0("Carné C5E850 | Tasa anual = ", tasa_asig * 100, "% | Intereses ganados = ₡", format(round(res_ej3_asig$interes, 2), big.mark = ",")),
+    x = "Mes (2025)",
+    y = "Millones de colones (CRC)",
+    fill = NULL
+  ) +
+  theme_minimal() +
+  theme(legend.position = "top")
+
+ggsave("info/figuras/ejercicio3_valor_acumulado.png", plot = g_ej3, width = 9, height = 4.5, dpi = 300)
+knitr::include_graphics("info/figuras/ejercicio3_valor_acumulado.png")
 ```
