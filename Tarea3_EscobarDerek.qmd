@@ -11,6 +11,7 @@ editor: source
 knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE)
 library(dplyr)
 library(readr)
+library(ggplot2)
 
 # Carga de funciones modulares y parametros asignados
 source("cod/funciones_tarea3.R")
@@ -18,6 +19,7 @@ params <- read.csv2("config/parametros_tarea3.csv")
 
 # Carga de base de transacciones
 tx <- read_csv2("data/transacciones_2025.csv", show_col_types = FALSE)
+cantones <- read_csv("data/cantones.csv", show_col_types = FALSE)
 ```
 
 ## 0. Hoja de respuestas
@@ -34,11 +36,18 @@ RESULTADO_1A <- sum(res_ej1_asig$alerta)
 RESULTADO_1B <- as.character(res_ej1_asig$fecha[which(res_ej1_asig$alerta)[1]])
 RESULTADO_1C <- sum(res_ej1_comun$alerta)
 
+# Calculo Ejercicio 2
+canal_asig <- as.character(params$valor[params$parametro == "canal.benford"])
+
+res_ej2_asig <- benford.canton(tx, canal = canal_asig, cantones = cantones)
+res_ej2_web  <- benford.canton(tx, canal = "Web", cantones = cantones)
+
+RESULTADO_2A <- round(benford.mad(tx$monto_crc[tx$canal == canal_asig]), 4)
+RESULTADO_2B <- res_ej2_asig$canton[1]
+RESULTADO_2C <- sum(res_ej2_asig$mad > 0.015, na.rm = TRUE)
+RESULTADO_2D <- res_ej2_web$canton[1]
+
 # Placeholders Ejercicios 2 y 3
-RESULTADO_2A <- "PENDIENTE"
-RESULTADO_2B <- "PENDIENTE"
-RESULTADO_2C <- "PENDIENTE"
-RESULTADO_2D <- "PENDIENTE"
 RESULTADO_3A <- "PENDIENTE"
 RESULTADO_3B <- "PENDIENTE"
 RESULTADO_3C <- "PENDIENTE"
@@ -61,8 +70,6 @@ cat(
 ## Ejercicio 1: Alertas por ventana móvil
 
 ```{r ej1_grafico, echo=FALSE}
-library(ggplot2)
-
 dir.create("info/figuras", recursive = TRUE, showWarnings = FALSE)
 
 g_ej1 <- ggplot(res_ej1_asig, aes(x = fecha, y = n.tx)) +
@@ -84,4 +91,37 @@ g_ej1 <- ggplot(res_ej1_asig, aes(x = fecha, y = n.tx)) +
 
 ggsave("info/figuras/ejercicio1_alertas.png", plot = g_ej1, width = 9, height = 4.5, dpi = 300)
 knitr::include_graphics("info/figuras/ejercicio1_alertas.png")
+```
+
+## Ejercicio 2: Ley de Benford por cantón
+
+```{r ej2_grafico, echo=FALSE}
+montos_canal <- tx$monto_crc[tx$canal == canal_asig]
+primer_dig   <- montos_canal %/% 10^floor(log10(montos_canal))
+
+df_benford <- data.frame(
+  digito  = 1:9,
+  obs     = as.numeric(table(factor(primer_dig, levels = 1:9))) / length(primer_dig),
+  benford = log10(1 + 1 / (1:9))
+)
+
+g_ej2 <- ggplot(df_benford, aes(x = factor(digito))) +
+  geom_col(aes(y = obs, fill = "Observado (pd)"), width = 0.65, alpha = 0.85) +
+  geom_line(aes(y = benford, group = 1, color = "Ley de Benford (Bd)"), linewidth = 1.1) +
+  geom_point(aes(y = benford, color = "Ley de Benford (Bd)"), size = 2.5) +
+  scale_fill_manual(values = c("Observado (pd)" = "#3B82F6")) +
+  scale_color_manual(values = c("Ley de Benford (Bd)" = "#DC2626")) +
+  labs(
+    title = paste0("Distribución del primer dígito vs. Ley de Benford (Canal: ", canal_asig, ")"),
+    subtitle = paste0("Carné C5E850 | MAD global = ", RESULTADO_2A, " (conformidad cercana)"),
+    x = "Primer dígito (d)",
+    y = "Proporción",
+    fill = NULL,
+    color = NULL
+  ) +
+  theme_minimal() +
+  theme(legend.position = "top")
+
+ggsave("info/figuras/ejercicio2_benford.png", plot = g_ej2, width = 9, height = 4.5, dpi = 300)
+knitr::include_graphics("info/figuras/ejercicio2_benford.png")
 ```
